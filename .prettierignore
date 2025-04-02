@@ -1,0 +1,9 @@
+# Archivos/directorios a ignorar
+node_modules
+dist
+build
+coverage
+.next
+out
+*.md
+*.html
