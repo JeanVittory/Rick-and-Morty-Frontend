@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux';
 import { updateSingleCharacter } from '../../redux/singleCharacterSlice/singleCharacterSlice.redux';
 import { singleCharacterModel } from '../../models/singleCharacter.models';
 import { CardSingleCharacter } from './components/CardSingleCharacter.pages.singleCharacterContainer.components';
-import { ButtonGoBack } from './components/Button.pages.singleCharacteRContainer.components';
+import { ButtonGoBack } from './components/Button.pages.singleCharacterContainer.components';
 import { CommentSection } from './components/CommentSection.singleCharacter.page.components';
 
 export const SingleCharacterContainer = () => {
