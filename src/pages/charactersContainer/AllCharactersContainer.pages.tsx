@@ -1,23 +1,40 @@
 import { ChangeEvent, useEffect, useState } from 'react';
 import { charactersAdapter } from '../../adapters/AllCharacters.adapters';
 import { fetchAllCharacters } from '../../services/fetchingCharacters.service';
-import { useDispatch } from 'react-redux';
-import { CardCharacter } from './components/CardCharacter.pages.charactersContainer.components';
+import { useDispatch, useSelector } from 'react-redux';
 import { Spinner } from '../../components/Spinner';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { getAllCharacters } from '../../redux/charactersSlice/characterSlice.redux';
+import {
+  addFavorite,
+  removeFavorite,
+} from '../../redux/favoriteCharacteresSlice/favoriteCharacters.slice';
+import { CharacterDetail } from './components/CharacterDetail.component';
+import { AllCharacters } from './components/AllCharacters.component';
+import { StarredCharacters } from './components/StarredCharacters.component';
+import { CharacterFilters } from './components/CharactersFilter.component';
+import { SearchBarCharacterFilter } from './components/SearchBarCharacterFilter.component';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { Characters } from '../../models/characters.models';
 
 export const AllCharactersContainer = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [sortOrder, setSortOrder] = useState<string>('ASC');
-  const [allCharacters, setAllCharacters] = useState<any[]>([]);
+  const [allCharacters, setAllCharacters] = useState<Characters[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [speciesFilter, setSpeciesFilter] = useState<string>('');
   const [genderFilter, setGenderFilter] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [favoriteCharacters, setFavoriteCharacters] = useState<any[]>([]);
+  const [selectedCharacter, setSelectedCharacter] = useState<any>(null);
+  const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
+  const [showDetailMobile, setShowDetailMobile] = useState<boolean>(false);
+  const isMobile = useIsMobile();
 
   const dispatch = useDispatch();
   const itemsPerPage = 20;
   const { visibleItems, isFetching } = useInfiniteScroll(allCharacters, itemsPerPage);
+  const dataFromRedux = useSelector((state: any) => state.allCharacters);
 
   useEffect(() => {
     const loadCharacters = async () => {
@@ -25,6 +42,10 @@ export const AllCharactersContainer = () => {
         setLoading(true);
         const characters = await fetchAllCharacters('name', sortOrder);
         setAllCharacters(characters);
+
+        if (characters.length > 0 && !selectedCharacter) {
+          setSelectedCharacter(characters[0]);
+        }
       } catch (error) {
         console.error('Error loading characters:', error);
       } finally {
@@ -36,7 +57,9 @@ export const AllCharactersContainer = () => {
 
   useEffect(() => {
     const filteredCharacters = visibleItems.filter((character) => {
+      const nameMatch = character.name.toLowerCase().includes(searchTerm.toLowerCase());
       return (
+        nameMatch &&
         (statusFilter ? character.status === statusFilter : true) &&
         (speciesFilter ? character.species === speciesFilter : true) &&
         (genderFilter ? character.gender === genderFilter : true)
@@ -45,7 +68,60 @@ export const AllCharactersContainer = () => {
 
     const formattedData = charactersAdapter(filteredCharacters);
     dispatch(getAllCharacters(formattedData));
-  }, [statusFilter, speciesFilter, genderFilter, visibleItems, dispatch]);
+  }, [statusFilter, speciesFilter, genderFilter, visibleItems, searchTerm, dispatch]);
+
+  const toggleFavorite = (character: any) => {
+    const isAlreadyFavorite = favoriteCharacters.some((fav) => fav.id === character.id);
+
+    if (isAlreadyFavorite) {
+      setFavoriteCharacters(favoriteCharacters.filter((fav) => fav.id !== character.id));
+      dispatch(removeFavorite(character.id));
+    } else {
+      setFavoriteCharacters([...favoriteCharacters, character]);
+      dispatch(addFavorite(character));
+    }
+  };
+
+  const handleChangeOrder = (e: string) => {
+    setSortOrder(e);
+  };
+
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleCharacterSelect = (character: any) => {
+    if (isMobile) setShowDetailMobile(true);
+    setSelectedCharacter(character);
+  };
+
+  const toggleFilterModal = () => {
+    setShowFilterModal(!showFilterModal);
+  };
+
+  const handleFilterChange = (filterType: string, value: string) => {
+    switch (filterType) {
+      case 'character':
+        if (value === 'Starred') {
+          const starredCharacters = allCharacters.filter((character) =>
+            favoriteCharacters.some((fav) => fav.id === character.id),
+          );
+          dispatch(getAllCharacters(charactersAdapter(starredCharacters)));
+        } else if (value === 'All') {
+          dispatch(getAllCharacters(charactersAdapter(visibleItems)));
+        }
+        break;
+      case 'specie':
+        setSpeciesFilter(value === 'All' ? '' : value);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const applyFilters = () => {
+    setShowFilterModal(false);
+  };
 
   if (loading && visibleItems.length === 0) {
     return (
@@ -55,71 +131,62 @@ export const AllCharactersContainer = () => {
     );
   }
 
-  const handleChangeOrder = (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSortOrder(value === 'ASC' ? 'DESC' : 'ASC');
-  };
-
   return (
-    <main className='bg-[#fdfcdc] h-screen'>
-      {(isFetching || loading) && (
-        <div className='w-full flex justify-center py-8'>
-          <Spinner />
-        </div>
-      )}
-      <div className='w-full flex justify-between gap-4 p-4 overflow-x-auto whitespace-nowrap'>
-        <div className='flex gap-4 p-4'>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className='px-4 py-2 bg-gray-200 rounded-md text-gray-800'
-          >
-            <option value=''>All Status</option>
-            <option value='Alive'>Alive</option>
-            <option value='Dead'>Dead</option>
-            <option value='unknown'>Unknown</option>
-          </select>
+    <main className='flex h-screen bg-white overflow-hidden'>
+      <div
+        className={`
+  ${isMobile && showDetailMobile ? 'hidden' : ''} 
+  w-full md:w-72 border-r border-gray-200 bg-white
+`}
+      >
+        <div className='p-4'>
+          <h1 className='text-xl font-normal mb-4'>Rick and Morty list</h1>
 
-          <select
-            value={speciesFilter}
-            onChange={(e) => setSpeciesFilter(e.target.value)}
-            className='px-5 py-2 bg-gray-200 rounded-md text-gray-800'
-          >
-            <option value=''>All Species</option>
-            <option value='Human'>Human</option>
-            <option value='Alien'>Alien</option>
-            <option value='Animal'>Animal</option>
-            <option value='Humanoid'>Humanoid</option>
-            <option value='Unknown'>Unknown</option>
-            <option value='Robot'>Robot</option>
-          </select>
+          <SearchBarCharacterFilter
+            handleSearchChange={handleSearchChange}
+            searchTerm={searchTerm}
+            toggleFilterModal={toggleFilterModal}
+          />
 
-          <select
-            value={genderFilter}
-            onChange={(e) => setGenderFilter(e.target.value)}
-            className='px-4 py-2 bg-gray-200 rounded-md text-gray-800'
-          >
-            <option value=''>All Genders</option>
-            <option value='Male'>Male</option>
-            <option value='Female'>Female</option>
-            <option value='Genderless'>Genderless</option>
-            <option value='unknown'>Unknown</option>
-          </select>
-        </div>
-        <div className='flex gap-4 p-4'>
-          <select
-            onChange={(e) => handleChangeOrder(e)}
-            className='px-4 py-2 bg-gray-200 rounded-md text-gray-800'
-          >
-            <option value='DESC'>A/Z</option>
-            <option value='ASC'>Z/A</option>
-          </select>
+          <CharacterFilters
+            applyFilters={applyFilters}
+            handleFilterChange={handleFilterChange}
+            handleSearchChange={handleSearchChange}
+            searchTerm={searchTerm}
+            showFilterModal={showFilterModal}
+            speciesFilter={speciesFilter}
+            statusFilter={statusFilter}
+            toggleFilterModal={toggleFilterModal}
+            handleChangeOrder={handleChangeOrder}
+            sortOrder={sortOrder}
+          />
+
+          <StarredCharacters
+            favoriteCharacters={favoriteCharacters}
+            handleCharacterSelect={handleCharacterSelect}
+            selectedCharacter={selectedCharacter}
+            toggleFavorite={toggleFavorite}
+          />
+
+          <AllCharacters
+            dataFromRedux={dataFromRedux}
+            favoriteCharacters={favoriteCharacters}
+            isFetching={isFetching}
+            handleCharacterSelect={handleCharacterSelect}
+            selectedCharacter={selectedCharacter}
+            toggleFavorite={toggleFavorite}
+            visibleItems={visibleItems}
+          />
         </div>
       </div>
 
-      <section className='w-screen grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 justify-items-center pb-24'>
-        <CardCharacter />
-      </section>
+      <CharacterDetail
+        toggleFavorite={toggleFavorite}
+        selectedCharacter={selectedCharacter}
+        favoriteCharacters={favoriteCharacters}
+        showDetailMobile={showDetailMobile}
+        setShowDetailMobile={setShowDetailMobile}
+      />
     </main>
   );
 };
