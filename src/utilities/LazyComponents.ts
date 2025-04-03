@@ -5,10 +5,3 @@ export const AllCharactersContainer = lazy(() =>
     ({ AllCharactersContainer }) => ({ default: AllCharactersContainer }),
   ),
 );
-export const SingleCharacterContainer = lazy(() =>
-  import('../pages/singleCharacterContainer/SingleCharacterContainer.pages').then(
-    ({ SingleCharacterContainer }) => ({
-      default: SingleCharacterContainer,
-    }),
-  ),
-);
