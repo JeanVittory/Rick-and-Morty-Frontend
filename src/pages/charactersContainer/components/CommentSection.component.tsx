@@ -27,7 +27,7 @@ export const CommentSection = ({ characterId }: { characterId: number }) => {
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder='Write a comment...'
-          className='border rounded-md p-2 w-full'
+          className='border rounded-md p-2 w-full font-nunito'
         />
         <button
           onClick={handleAddComment}
