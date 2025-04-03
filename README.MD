@@ -12,8 +12,7 @@ Hello, this is an application that I build to consume the api of [Rick and Morty
 - [Vite v.6.2](https://vitejs.dev/)
 - [GraphQL v.16.10](https://graphql.org/)
 - [Vitest v.3.1](https://vitest.dev/)
-
-
+- [React Router DOM v.6.3](https://reactrouter.com/)
 
 ```sh
 git clone https://github.com/JeanVittory/Rick-and-Morty-Frontend.git
