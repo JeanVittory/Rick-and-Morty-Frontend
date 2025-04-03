@@ -1,9 +1,9 @@
-import { createSlice } from "@reduxjs/toolkit";
-import { characters } from "../../models/characters.models";
+import { createSlice } from '@reduxjs/toolkit';
+import { Characters } from '../../models/characters.models';
 
-const initialState: characters[] = [];
+const initialState: Characters[] = [];
 export const allCharacterSlice = createSlice({
-  name: "AllCharacters",
+  name: 'AllCharacters',
   initialState: { data: initialState },
   reducers: {
     getAllCharacters: (state, action) => {
@@ -11,7 +11,6 @@ export const allCharacterSlice = createSlice({
     },
   },
 });
-
 
 export const { getAllCharacters } = allCharacterSlice.actions;
 export default allCharacterSlice.reducer;
